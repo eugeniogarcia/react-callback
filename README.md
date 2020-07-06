@@ -1,68 +1,63 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Descripcion
 
-## Available Scripts
+Tenemos dos componentes, `Children` y `Parent`. `Children` puede cambiar el estado de `Parent` usando el método reset:
 
-In the project directory, you can run:
+```js
+//Usa Memo. Solo hace el rerender si "reset" o "mensaje" han cambiado
+const Children = memo(({ reset , mensaje}) => {
+  console.log("re-render child " + mensaje + " component.")
+  return (
+    <div>
+      <p>El hijo resetea el Contador ({mensaje})</p>
+      <button onClick={reset}>Resetea el Contador</button>
+    </div>
+  );
+});
 
-### `npm start`
+export default Children;
+```
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Notese que hemos usado `React.memo`, de modo que solo se volvera ha hacer el re-render del `Children` cuando alguna de sus props cambia. Mensaje es una constante, pero render es una funcion. Al cambiar el estado el `Parent` se re-renderiza. Si alguna de estas dos propiedades cambia, el `Children` cambiara.
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+Vemaos el `Parent`:
 
-### `npm test`
+```js
+import React, { useState, useCallback } from 'react';
+import Children from './Children';
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+const Parent = () => {
+    const [count, setCount] = useState(0);
+    console.log("re-render parent component");
 
-### `npm run build`
+    const resetCount_conCB = useCallback(() => {
+        setCount(0);
+    }, [setCount]);
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+    const resetCount = () => {
+        setCount(0);
+    };
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+    return (
+        <main>
+            <p>Count: {count}</p>
+            <button onClick={() => setCount(count => (count + 1))}>Incrementa</button>
+            <Children reset={resetCount_conCB} mensaje="Con CB"/>
+            <Children reset={resetCount} mensaje="Sin CB"/>
+        </main>
+    )
+}
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+export default Parent;
+```
 
-### `npm run eject`
+Cuando se re-renderiza el padre, la funcion `resetCount` se recrea. La funcion `resetCount_conCB` no se recrea, porque con callback hacemos que solo cuando el método `setCount` cambie, y este no cambia entre re-renders de `Parent`:
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```js
+    const resetCount_conCB = useCallback(() => {
+        setCount(0);
+    }, [setCount]);
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+    const resetCount = () => {
+        setCount(0);
+    };
+```
